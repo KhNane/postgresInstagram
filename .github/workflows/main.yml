@@ -15,7 +15,7 @@ jobs:
 
       - name: Wait for PostgreSQL pod to be ready
         run: |
-          kubectl wait --for=condition=ready pod -l app=postgres --timeout=90s
+          kubectl wait --for=condition=ready pod -l app=postgresins --timeout=90s
 
       - name: Get pod name
         id: pod
