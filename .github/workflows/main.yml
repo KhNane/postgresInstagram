@@ -1,13 +1,19 @@
-name: PSQL on Kubernetes
+name: Run PSQL Manually with Auto Pod Detection
 
-on: [push]
+on:
+  workflow_dispatch:
+    inputs:
+      pg_password:
+        description: 'PostgreSQL password'
+        required: true
+        type: string
 
 jobs:
   psql-check:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v4
 
     - name: Set up kubectl
@@ -18,10 +24,18 @@ jobs:
     - name: Configure kubeconfig
       run: |
         mkdir -p ~/.kube
-        echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
 
-    - name: Run psql inside pod
+    - name: Find Postgres Pod Name
+      id: find-pod
       run: |
-        kubectl exec -i postgres-77b9f6756-jm747 -- \
-          env PGPASSWORD=your_password \
+        POD=$(kubectl get pods -l app=postgres -o jsonpath="{.items[0].metadata.name}")
+        echo "Found pod: $POD"
+        echo "pod_name=$POD" >> $GITHUB_OUTPUT
+
+    - name: Run psql inside Postgres pod
+      run: |
+        echo "Using pod: ${{ steps.find-pod.outputs.pod_name }}"
+        kubectl exec -i ${{ steps.find-pod.outputs.pod_name }} -- \
+          env PGPASSWORD="${{ inputs.pg_password }}" \
           psql -h localhost -U admin -p 5432 -d todo -c '\l'
