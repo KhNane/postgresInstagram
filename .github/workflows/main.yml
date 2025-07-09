@@ -1,28 +1,27 @@
-name: PostgreSQL Connection Check
+name: PSQL on Kubernetes
 
-on:
-  workflow_dispatch:
+on: [push]
 
 jobs:
-  check-postgres:
+  psql-check:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Wait for PostgreSQL pod to be ready
-        run: |
-          kubectl wait --for=condition=ready pod -l app=postgresins --timeout=90s
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
 
-      - name: Get pod name
-        id: pod
-        run: |
-          echo "POD_NAME=$(kubectl get pods -l app=postgresins -o jsonpath='{.items[0].metadata.name}')" >> $GITHUB_ENV
+    - name: Configure kubeconfig
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
 
-      - name: Check DB connection
-        run: |
-          kubectl exec -i $POD_NAME -- \
-          psql -U ps_user -d ps_db -c "SELECT 1;"
+    - name: Run psql inside pod
+      run: |
+        kubectl exec -i postgres-77b9f6756-jm747 -- \
+          env PGPASSWORD=your_password \
+          psql -h localhost -U admin -p 5432 -d todo -c '\l'
