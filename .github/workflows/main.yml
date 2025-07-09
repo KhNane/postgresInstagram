@@ -33,7 +33,7 @@ jobs:
         echo "Found pod: $POD"
         echo "pod_name=$POD" >> $GITHUB_OUTPUT
 
-    - name: Run psql inside Postgres pod
+    - name: Run psql inside Postgres pods
       run: |
         echo "Using pod: ${{ steps.find-pod.outputs.pod_name }}"
         kubectl exec -i ${{ steps.find-pod.outputs.pod_name }} -- \
